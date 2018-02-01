@@ -1,0 +1,17 @@
+{
+  "name": "chatroom-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "forever start index.js",
+    "stop": "forever stop index.js"
+  },
+  "author": "xiahongjian",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.2",
+    "log4js": "^2.4.1",
+    "socket.io": "^2.0.4"
+  }
+}

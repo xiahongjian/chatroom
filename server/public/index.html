@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="//apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css">
+    <script src="//apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="socket.io.slim.js"></script>
+    <title>Clipboard</title>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Remote Clipboard <span class="badge badge-success" id="connCount">0</span></h3>
+                </div>
+                <div class="panel-body" id="panel"  style="height: 500px; overflow: auto;">
+
+                </div>
+                <div class="panel-footer">
+                    <div class="form">
+                        <div class="form-group">
+                            <textarea class="form-control" id="msg-input" rows="1" style="resize: none;" ></textarea>
+                        </div>
+                        <button class="btn btn-primary form-control" id="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(function() {
+            var EVENTS = {
+                connection: 'connection',
+                disconnect: 'disconnect',
+                message: 'message',
+                connCount: 'connCount'
+            };
+            $('#msg-input').on('keyup', function(evnet) {
+                if (event.keyCode == 13)
+                    sendMsg();
+            });
+            $('#send-btn').click(function () {
+                sendMsg();
+            });
+
+            var socket = io('http://clipboard.hongjian.tech');
+            socket.on(EVENTS.connection, () => console.log('connect'));
+            socket.on(EVENTS.message, data => appendContent(data));
+            socket.on(EVENTS.connCount, data => $('#connCount').text(data));
+            function sendMsg() {
+                var $msgInput = $('#msg-input'),
+                    msg = $msgInput.val().trim();
+                if (!msg)
+                    return;
+                $msgInput.val('');
+                // appendContent(msg);
+                socket.emit(EVENTS.message, msg);
+            }
+            function appendContent(msg) {
+                if (msg) {
+                    var msg = $('<div></div>').text(msg).html();
+		    var panel = $('#panel');
+                    panel.append('<pre>' + msg + '</pre>');
+		    panel.scrollTop( panel[0].scrollHeight );
+                }
+                    
+            }
+            function handleKeyUp(evnet) {
+                if (event.keyCode == 13)
+                    sendMsg();
+            }
+        });
+        
+        
+    </script>
+</body>
+</html>
