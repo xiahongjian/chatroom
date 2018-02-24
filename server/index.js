@@ -2,7 +2,8 @@ let express = require('express'),
     app = express(),
     server = require('http').createServer(app),
     io = require('socket.io')(server),
-    log4js = require('log4js');
+    log4js = require('log4js'),
+    config = require('./config/config');
 
 log4js.configure({
     appenders: {
@@ -59,8 +60,12 @@ io.on(EVENTS.connection, (socket) => {
             nick: nick
         };
         users.push(socket.user);
-        io.emit(EVENTS.join, socket.user.id);
+        // 向客户端发送自己的id
+        socket.emit(EVENTS.join, socket.user.id);
+        // 向客所有户端发送当前房间成员
         io.emit(EVENTS.users, JSON.stringify(users));
+        // 向其他用户广播新成员的加入
+        socket.broadcast.emit(EVENTS.notify, JSON.stringify({title: '加入聊天', content: `${nick}`}));
     });
 
     // 修改昵称
@@ -106,6 +111,6 @@ function getClientIp(socket) {
     return socket.handshake.headers['x-forwarded-for'] 
         || socket.conn.remoteAddress;
 }
-server.listen(8000, () => {
-    logger.info('listening on 8000');
+server.listen(config.port, () => {
+    logger.info(`listening on ${config.port}`);
 });

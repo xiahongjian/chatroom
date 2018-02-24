@@ -9,7 +9,7 @@
           <message v-for="(m, index) in received" :name="m.nick" :message="m.message" :key="index"></message>
         </div>
         <div class="ivu-card-body footer">
-            <Input v-model="message" type="textarea" :row="1" :autosize="{minRows: 1, maxRows: 3}" placeholder="按Enter发送" @on-enter="sendMsg"></Input>
+            <Input v-model="message" type="textarea" :row="1" :autosize="{minRows: 1, maxRows: 3}" placeholder="按Enter发送" @keydown.native="sendMsg($event)"></Input>
         </div>
       </div>
     </Col>
@@ -21,7 +21,7 @@
           </h3>
           <Form :label-width="80">
             <FormItem label="Nick Name:">
-              <Input type="text" v-model="user.nick" @on-blur="modifyNick" /> 
+              <Input type="text" v-model="user.nick" @on-blur="modifyNick" @keyup.enter.native="modifyNick" /> 
             </FormItem>
           </Form>
         </Card>
@@ -43,7 +43,7 @@
 <script>
 import message from './message.vue'
 import io from 'socket.io-client'
-import config from '../config/config'
+import config from '../config/config.js'
 const EVTS = {
   connection: 'connection',
   join: 'join',
@@ -60,12 +60,20 @@ export default {
   },
   mounted () {
     this.socket = io(config.url);
-    this.socket.on(EVTS.connection, () => {
-      // 加入聊天
-      this.socket.emit(EVTS.join, this.user.nick);
+    console.log(config.url);
+    // 通知处理
+    this.socket.on(EVTS.notify, data => {
+      let notify = JSON.parse(data);
+      this.$Notice.open({
+        title: notify.title,
+        desc: notify.content
+      });
     });
     // 获取id
-    this.socket.on(EVTS.join, id => this.user.id = id);
+    this.socket.on(EVTS.join, id => {
+      this.user.id = id
+    });
+
     // 处理消息
     this.socket.on(EVTS.message, (data) => {
       this.received.push(JSON.parse(data));
@@ -76,14 +84,12 @@ export default {
       let len = this.online.length;
       this.online.splice(0, len, ...JSON.parse(data));
     });
-    // 通知处理
-    this.socket.on(EVTS.notify, data => {
-      let notify = JSON.parse(data);
-      this.$Notice.open({
-        title: notify.title,
-        desc: notify.content
-      });
+
+    this.socket.on(EVTS.connection, () => {
+      // 加入聊天
+      this.socket.emit(EVTS.join, this.user.nick);
     });
+    
   },
   updated () {
     this.$nextTick(function(){
@@ -95,7 +101,7 @@ export default {
     return {
       id: null,
       user: {
-        nick: 'Anonymous',
+        nick: window.localStorage.getItem('nickname') || 'Anonymous',
         id: null
       },
       message: '',
@@ -105,14 +111,19 @@ export default {
     }
   },
   methods: {
-    sendMsg () {
+    sendMsg (event) {
+      if (event.keyCode !== 13)
+        return;
+      event.preventDefault();
       if (!this.message.trim())
         return;
       this.socket.send(JSON.stringify({nick: this.user.nick, message: this.message}));
       this.message = ''
     },
     modifyNick () {
-      this.socket.emit(EVTS.modifyNick, this.user.nick);
+      // localStorage存储昵称
+      window.localStorage.setItem('nickname', this.user.nick)
+      this.socket.emit(EVTS.modifyNick, this.user.nick)
     },
     genAvatarClass (nick) {
       let className = 'avatar-color-' + (nick.charCodeAt(0) % 2)
